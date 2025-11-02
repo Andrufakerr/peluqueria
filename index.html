@@ -216,6 +216,53 @@ button {
   to { transform: translateY(0); opacity: 1; }
 }
 
+.alerta-ventana {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 4000;
+  animation: fadeIn 0.3s ease;
+}
+
+.alerta-ventana.active {
+  display: flex;
+}
+
+.alerta-caja {
+  background: white;
+  padding: 30px 25px;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: slideUp 0.3s ease;
+}
+
+.alerta-caja h3 {
+  color: #6a00b6;
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.alerta-caja button {
+  background: linear-gradient(135deg, #6a00b6, #9500ff);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.alerta-caja button:hover {
+  transform: scale(1.05);
+}
 /* === MÓVILES GRANDES Y PEQUEÑOS === */
 /* === MÓVILES GRANDES Y PEQUEÑOS === */
 @media (max-width: 1000px) {
@@ -292,7 +339,27 @@ button {
     transform: scale(1.15);
     transform-origin: center;
   }
+@media (max-width: 1000px) {
+  .alerta-caja {
+    width: 95%;
+    max-width: 95%;
+    padding: 50px 30px;
+    border-radius: 28px;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.5);
+  }
 
+  .alerta-caja h3 {
+    font-size: 2.4rem; /* 🔹 texto grande como alert nativo */
+    line-height: 1.5;
+    margin-bottom: 35px;
+  }
+
+  .alerta-caja button {
+    font-size: 2rem;
+    padding: 20px 60px;
+    border-radius: 20px;
+  }
+}
 
 </style>
 </head>
@@ -338,8 +405,16 @@ button {
         <label>Nombre del Dueño:</label>
         <input type="text" id="dueño" required>
 
-        <label>Nombre del Perro:</label>
+        <label>Nombre de la Mascota:</label>
         <input type="text" id="perro" required>
+        
+        <label>Especie:</label>
+<select id="especie" required>
+  <option value="">Seleccionar...</option>
+  <option value="Perro">Perro 🐶</option>
+  <option value="Gato">Gato 🐱</option>
+</select>
+
 
         <label>Teléfono:</label>
         <input type="text" id="telefono" required>
@@ -419,10 +494,11 @@ fechaInput.addEventListener("input", () => {
   const fecha = new Date(fechaInput.value + "T00:00:00");
   const diaSemana = fecha.getDay(); // 0=Dom, 1=Lun, 2=Mar, ...
   
-  if (diaSemana === 1) { // Lunes
-    alert("⚠️ No se pueden reservar turnos los lunes. Elegí otro día (Martes a Domingo).");
-    fechaInput.value = ""; // Limpiar selección
-  }
+ if (diaSemana === 1) {
+  mostrarAlerta("⚠️ No se pueden reservar turnos los lunes. Elegí otro día (Martes a Domingo).");
+  fechaInput.value = "";
+}
+
 });
 
   // === REGLA 4: HORARIOS DEPENDEN DE LA FECHA ===
@@ -447,7 +523,7 @@ fechaInput.addEventListener("input", () => {
       const disponibles = horarios.filter(h => !ocupados.includes(h));
 
       if (disponibles.length === 0) {
-        alert("⚠️ Todos los horarios están ocupados para esta fecha.");
+        mostrarAlerta("⚠️ Todos los horarios están ocupados para esta fecha.");
         fechaInput.value = "";
         return;
       }
@@ -469,6 +545,7 @@ fechaInput.addEventListener("input", () => {
 
     const dueño = document.getElementById("dueño").value.trim();
     const perro = document.getElementById("perro").value.trim();
+    const especie = document.getElementById("especie").value;
     const telefono = document.getElementById("telefono").value.trim();
     const servicio = document.getElementById("servicio").value;
     const tipo_pago = "No definido";
@@ -476,7 +553,7 @@ fechaInput.addEventListener("input", () => {
     const hora = horaSelect.value;
 
     if (!dueño || !perro || !telefono || !servicio || !fecha || !hora) {
-      alert("⚠️ Completa todos los campos obligatorios.");
+      mostrarAlerta("⚠️ Completa todos los campos obligatorios.");
       return;
     }
 
@@ -493,7 +570,7 @@ fechaInput.addEventListener("input", () => {
 
     const diffHoras = (fechaTurno - ahoraBuenosAires) / (1000 * 60 * 60);
     if (diffHoras < 6) {
-      alert("⚠️ El turno debe reservarse con al menos 6 horas de anticipación.");
+      mostrarAlerta("⚠️ El turno debe reservarse con al menos 6 horas de anticipación.");
       return;
     }
 
@@ -509,28 +586,27 @@ fechaInput.addEventListener("input", () => {
     }, { onlyOnce: true });
 
     setTimeout(() => {
-      if (duplicado) {
-        alert("⚠️ Ese horario ya está ocupado.");
-      } else {
-       push(ref(db, "turnos"), { dueño, perro, telefono, servicio, tipo_pago, fecha, hora });
-       datosTurnoActual = { dueño, perro, telefono, servicio, fecha, hora };
-push(ref(db, "turnos"), { ...datosTurnoActual, tipo_pago });
-form.reset();
-horaSelect.disabled = true;
-modal.classList.remove("active");
-       form.reset();
-horaSelect.disabled = true;
-modal.classList.remove("active");
+    if (duplicado) {
+  mostrarAlerta("⚠️ Ese horario ya está ocupado.");
+} else {
+ datosTurnoActual = { dueno: dueño, perro, especie, telefono, servicio, tipo_pago, fecha, hora };
+push(ref(db, "turnos"), datosTurnoActual);
 
-// Mostrar modal de confirmación
-const modalConfirm = document.getElementById("modalConfirmacion");
-modalConfirm.classList.add("active");
+  form.reset();
+  horaSelect.disabled = true;
+  modal.classList.remove("active");
 
-// Configurar botones
-document.getElementById("btnOtroTurno").onclick = () => {
-  modalConfirm.classList.remove("active");
-  modal.classList.add("active");
-};
+  // Mostrar modal de confirmación
+  const modalConfirm = document.getElementById("modalConfirmacion");
+  modalConfirm.classList.add("active");
+
+  // Configurar botones
+  document.getElementById("btnOtroTurno").onclick = () => {
+    modalConfirm.classList.remove("active");
+    modal.classList.add("active");
+  };
+
+
 
 
 
@@ -622,7 +698,18 @@ const generarPDF = () => {
 
 
 
+function mostrarAlerta(mensaje) {
+  const alerta = document.getElementById("alertaCustom");
+  const texto = document.getElementById("alertaTexto");
+  const btn = document.getElementById("alertaBtn");
 
+  texto.textContent = mensaje;
+  alerta.classList.add("active");
+
+  btn.onclick = () => {
+    alerta.classList.remove("active");
+  };
+}
 </script>
 
 
@@ -636,6 +723,12 @@ const generarPDF = () => {
       <button id="btnOtroTurno" class="btn-primary">Agendar otro Turno</button>
       <button id="btnImprimir" class="btn">Imprimir PDF</button>
     </div>
+  </div>
+</div>
+<div id="alertaCustom" class="alerta-ventana">
+  <div class="alerta-caja">
+    <h3 id="alertaTexto"></h3>
+    <button id="alertaBtn">Aceptar</button>
   </div>
 </div>
 </body>
