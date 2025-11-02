@@ -589,7 +589,7 @@ fechaInput.addEventListener("input", () => {
     if (duplicado) {
   mostrarAlerta("⚠️ Ese horario ya está ocupado.");
 } else {
- datosTurnoActual = { dueno: dueño, perro, especie, telefono, servicio, tipo_pago, fecha, hora };
+  datosTurnoActual = { dueño, perro, especie, telefono, servicio, tipo_pago, fecha, hora };
 push(ref(db, "turnos"), datosTurnoActual);
 
   form.reset();
