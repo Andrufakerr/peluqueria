@@ -3,14 +3,7 @@
 <head>
   <link rel="icon" type="image/x-icon" href="imagenes/icono.ico">
   <meta charset="UTF-8">
-  <!-- 🟣 META DATOS PARA WHATSAPP Y REDES -->
-<meta property="og:title" content="El chico de los Perros 🐶" />
-<meta property="og:description" content="Peluquería canina y gatuna ✂️🐾 Turnos disponibles de Martes a Domingo." />
-<meta property="og:image" content="https://andrufakerr.github.io/peluqueria/imagenes/logo.png" />
-<meta property="og:url" content="https://andrufakerr.github.io/peluqueria/" />
-<meta property="og:type" content="website" />
-<meta name="twitter:card" content="summary_large_image">
-  <title>Peluqueria </title>
+  <title>Turnos Veterinaria</title>
 <style>
 /* === RESETEO GENERAL === */
 * {
@@ -565,21 +558,22 @@ fechaInput.addEventListener("input", () => {
     }
 
     // === REGLA 2: VALIDAR ANTICIPACIÓN DE 6 HORAS ===
-    const [horaH, horaM] = hora.split(":").map(Number);
-    const fechaTurno = new Date(`${fecha}T${horaH.toString().padStart(2, "0")}:${horaM.toString().padStart(2, "0")}:00`);
+  // === REGLA 2: VALIDAR ANTICIPACIÓN DE 6 HORAS (AJUSTADA A ARGENTINA) ===
+const [horaH, horaM] = hora.split(":").map(Number);
+const fechaTurno = new Date(`${fecha}T${horaH.toString().padStart(2, "0")}:${horaM.toString().padStart(2, "0")}:00`);
 
-    // Convertir a hora local de Buenos Aires (UTC-3)
-    const ahora = new Date();
-    const offsetBuenosAires = -3 * 60; // minutos
-    const offsetLocal = ahora.getTimezoneOffset();
-    const diferencia = (offsetBuenosAires - offsetLocal) * 60 * 1000;
-    const ahoraBuenosAires = new Date(ahora.getTime() + diferencia);
+// 🕒 Obtener hora actual exacta en Argentina (UTC-3)
+const ahora = new Date();
+const ahoraUTC = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
+const ahoraBuenosAires = new Date(ahoraUTC - (3 * 60 * 60 * 1000)); // UTC-3
 
-    const diffHoras = (fechaTurno - ahoraBuenosAires) / (1000 * 60 * 60);
-    if (diffHoras < 6) {
-      mostrarAlerta("⚠️ El turno debe reservarse con al menos 6 horas de anticipación.");
-      return;
-    }
+// Calcular diferencia en horas
+const diffHoras = (fechaTurno - ahoraBuenosAires) / (1000 * 60 * 60);
+
+if (diffHoras < 6) {
+  mostrarAlerta("⚠️ El turno debe reservarse con al menos 6 horas de anticipación (hora Argentina).");
+  return;
+}
 
     // === REGLA 3: NO DUPLICAR ===
     const refTurnos = ref(db, "turnos");
@@ -740,6 +734,3 @@ function mostrarAlerta(mensaje) {
 </div>
 </body>
 </html>
-
-
-
