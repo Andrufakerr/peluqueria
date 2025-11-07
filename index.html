@@ -420,13 +420,25 @@ button {
 
         <label>Nombre de la Mascota:</label>
         <input type="text" id="perro" required>
-        
-        <label>Especie:</label>
-<select id="especie" required>
-  <option value="">Seleccionar...</option>
-  <option value="Perro">Perro 🐶</option>
-  <option value="Gato">Gato 🐱</option>
-</select>
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+  <div style="flex:1; min-width:120px;">
+   
+    <label>Especie:</label>
+    <select id="especie" required>
+      <option value="">Seleccionar...</option>
+      <option value="Perro">Perro 🐶</option>
+      <option value="Gato">Gato 🐱</option>
+    </select>
+  </div>
+
+  <div style="flex:1; min-width:120px;">
+    <label>Tamaño:</label>
+    <select id="tamano">
+      <option value="Pequeño">Pequeño</option>
+      <option value="Grande">Grande</option>
+    </select>
+  </div>
+</div>
 
 
         <label>Teléfono:</label>
@@ -446,12 +458,15 @@ button {
         <input type="date" id="fecha" required>
 
         <label>Horario:</label>
-        <select id="hora" required>
-          <option value="">Seleccionar una Fecha</option>
-          <option value="15:00">15:00</option>
-          <option value="16:30">16:30</option>
-          <option value="18:30">18:00</option>
-        </select>
+<select id="hora" required>
+  <option value="">Seleccionar horario</option>
+  <option value="13:30">13:30</option>
+  <option value="15:00">15:00</option>
+  <option value="16:30">16:30</option>
+  <option value="18:30">18:00</option>
+</select>
+
+
 
         <div class="actions-row" style="margin-top:10px;">
   <button type="submit" class="btn-primary">Guardar</button>
@@ -532,7 +547,7 @@ fechaInput.addEventListener("input", () => {
         if (t.fecha === fechaElegida) ocupados.push(t.hora);
       });
 
-      const horarios = ["15:00", "16:30", "18:30"];
+      const horarios = ["13:30", "15:00", "16:30", "18:30"];
       const disponibles = horarios.filter(h => !ocupados.includes(h));
 
       if (disponibles.length === 0) {
@@ -542,94 +557,132 @@ fechaInput.addEventListener("input", () => {
       }
 
       disponibles.forEach(h => {
-        const opt = document.createElement("option");
-        opt.value = h;
-        opt.textContent = h;
-        horaSelect.appendChild(opt);
-      });
+  const opt = document.createElement("option");
+  opt.value = h;
+  // Si es 18:30, mostrarlo como 18:00
+  opt.textContent = (h === "18:30") ? "18:00" : h;
+  horaSelect.appendChild(opt);
+});
 
       horaSelect.disabled = false;
     }, { onlyOnce: true });
   });
 
-  // === GUARDAR TURNO ===
-  form.addEventListener("submit", e => {
-    e.preventDefault();
+  
+ // === GUARDAR TURNO ===
+form.addEventListener("submit", e => {
+  e.preventDefault();
 
-    const dueño = document.getElementById("dueño").value.trim();
-    const perro = document.getElementById("perro").value.trim();
-    const especie = document.getElementById("especie").value;
-    const telefono = document.getElementById("telefono").value.trim();
-    const servicio = document.getElementById("servicio").value;
-    const tipo_pago = "No definido";
-    const fecha = fechaInput.value;
-    const hora = horaSelect.value;
+  const dueño = document.getElementById("dueño").value.trim();
+  const perro = document.getElementById("perro").value.trim();
+  const especie = document.getElementById("especie").value;
+  const telefono = document.getElementById("telefono").value.trim();
+  const servicio = document.getElementById("servicio").value;
+  const tipo_pago = "No definido";
+  const fecha = fechaInput.value;
+  const hora = horaSelect.value;
+  const tamano = document.getElementById("tamano").value; // 👈 nuevo campo
 
-    if (!dueño || !perro || !telefono || !servicio || !fecha || !hora) {
-      mostrarAlerta("⚠️ Completa todos los campos obligatorios.");
-      return;
-    }
+  // === REGLA 1: CAMPOS OBLIGATORIOS ===
+  if (!dueño || !perro || !telefono || !servicio || !fecha || !hora) {
+    mostrarAlerta("⚠️ Completa todos los campos obligatorios.");
+    return;
+  }
 
-    // === REGLA 2: VALIDAR ANTICIPACIÓN DE 6 HORAS ===
   // === REGLA 2: VALIDAR ANTICIPACIÓN DE 6 HORAS (AJUSTADA A ARGENTINA) ===
+// === REGLA 2: NO PERMITIR TURNOS PARA HOY DESPUÉS DE LAS 13:00 (HORA ARGENTINA) ===
 const [horaH, horaM] = hora.split(":").map(Number);
 const fechaTurno = new Date(`${fecha}T${horaH.toString().padStart(2, "0")}:${horaM.toString().padStart(2, "0")}:00`);
 
 // 🕒 Obtener hora actual exacta en Argentina (UTC-3)
 const ahora = new Date();
 const ahoraUTC = ahora.getTime() + (ahora.getTimezoneOffset() * 60000);
-const ahoraBuenosAires = new Date(ahoraUTC - (3 * 60 * 60 * 1000)); // UTC-3
+const ahoraBuenosAires = new Date(ahoraUTC - (3 * 60 * 60 * 1000));
 
-// Calcular diferencia en horas
-const diffHoras = (fechaTurno - ahoraBuenosAires) / (1000 * 60 * 60);
+// 🔸 Si el turno es para hoy
+const fechaHoy = ahoraBuenosAires.toISOString().split("T")[0];
+if (fecha === fechaHoy) {
+  // Crear objeto con hora límite (13:00 Argentina)
+  const limite = new Date(ahoraBuenosAires);
+  limite.setHours(13, 0, 0, 0);
 
-if (diffHoras < 6) {
-  mostrarAlerta("⚠️ El turno debe reservarse con al menos 6 horas de anticipación (hora Argentina).");
-  return;
+  if (ahoraBuenosAires >= limite) {
+    mostrarAlerta("⚠️ Ya no se pueden reservar turnos para hoy. Solo se permiten antes de las 13:00 (hora Argentina).");
+    return;
+  }
 }
 
-    // === REGLA 3: NO DUPLICAR ===
-    const refTurnos = ref(db, "turnos");
-    let duplicado = false;
 
-    onValue(refTurnos, snapshot => {
-      snapshot.forEach(child => {
-        const t = child.val();
-        if (t.fecha === fecha && t.hora === hora) duplicado = true;
-      });
-    }, { onlyOnce: true });
+  // === REGLA 3: VALIDAR DUPLICADOS Y TAMAÑO ===
+  const refTurnos = ref(db, "turnos");
+  let duplicado = false;
+  let turnosDelDia = [];
 
-    setTimeout(() => {
-    if (duplicado) {
-  mostrarAlerta("⚠️ Ese horario ya está ocupado.");
-} else {
-  datosTurnoActual = { dueño, perro, especie, telefono, servicio, tipo_pago, fecha, hora };
-push(ref(db, "turnos"), datosTurnoActual);
-
-  form.reset();
-  horaSelect.disabled = true;
-  modal.classList.remove("active");
-
-  // Mostrar modal de confirmación
-  const modalConfirm = document.getElementById("modalConfirmacion");
-  modalConfirm.classList.add("active");
-
-  // Configurar botones
-  document.getElementById("btnOtroTurno").onclick = () => {
-    modalConfirm.classList.remove("active");
-    modal.classList.add("active");
-  };
-
-
-
-
-
+  onValue(refTurnos, snapshot => {
+    snapshot.forEach(child => {
+      const t = child.val();
+      if (t.fecha === fecha) {
+        turnosDelDia.push(t);
+        if (t.hora === hora) duplicado = true;
       }
-    }, 400);
-  });
-  document.getElementById("btnImprimir").onclick = async () => {
-  generarPDF(); // 🔹 llamamos a tu función más completa
+    });
+  }, { onlyOnce: true });
+
+  // Esperar para leer Firebase
+  setTimeout(() => {
+
+    // 🔹 Ver si ya hay un perro grande ese día
+    const hayGrande = turnosDelDia.some(t => t.tamano === "Grande");
+
+    if (hayGrande) {
+      mostrarAlerta("⚠️ Ya hay un perro grande agendado ese día. No se pueden agregar más turnos.");
+      return;
+    }
+
+    // 🔹 Si el perro actual es grande, debe ser el único del día
+    if (tamano === "Grande" && turnosDelDia.length > 0) {
+      mostrarAlerta("⚠️ Los perros grandes solo se pueden agendar en días totalmente libres.");
+      return;
+    }
+
+    // 🔹 Si es pequeño, respetar límite de 3 por día
+    if (tamano === "Pequeño" && turnosDelDia.length >= 3) {
+      mostrarAlerta("⚠️ Ya hay 3 turnos ocupados ese día.");
+      return;
+    }
+
+    // 🔹 Validar horario duplicado
+    if (duplicado) {
+      mostrarAlerta("⚠️ Ese horario ya está ocupado.");
+      return;
+    }
+
+    // === GUARDAR TURNO (ahora con el campo tamaño incluido) ===
+    datosTurnoActual = { dueño, perro, especie, telefono, servicio, tipo_pago, fecha, hora, tamano };
+    push(ref(db, "turnos"), datosTurnoActual);
+
+    // Resetear formulario
+    form.reset();
+    horaSelect.disabled = true;
+    modal.classList.remove("active");
+
+    // Mostrar modal de confirmación
+    const modalConfirm = document.getElementById("modalConfirmacion");
+    modalConfirm.classList.add("active");
+
+    // Configurar botones
+    document.getElementById("btnOtroTurno").onclick = () => {
+      modalConfirm.classList.remove("active");
+      modal.classList.add("active");
+    };
+
+  }, 400);
+});
+
+document.getElementById("btnImprimir").onclick = async () => {
+  generarPDF();
 };
+
 
 
 // 🔸 Pegar aquí la función generarPDF
@@ -652,14 +705,13 @@ const generarPDF = () => {
     // ==== LOGO CENTRADO ====
     const tamañoLogo = 60;
     const posXLogo = (ancho - tamañoLogo) / 2;
-    const posYLogo = 20; // más arriba para no chocar con el título
+    const posYLogo = 20;
     doc.addImage(logo, "PNG", posXLogo, posYLogo, tamañoLogo, tamañoLogo);
 
-    // ==== TÍTULO CENTRADO ====
+    // ==== TÍTULO ====
     doc.setTextColor(128, 0, 128);
     doc.setFontSize(26);
     doc.text("Turno: El Chico de los Perros", ancho / 2, posYLogo + tamañoLogo + 15, { align: "center" });
-    // 👆 El título se coloca 15 pts debajo del logo
 
     // ==== DATOS ====
     doc.setTextColor(0, 0, 0);
@@ -674,10 +726,17 @@ const generarPDF = () => {
       hora: document.getElementById("hora").value,
     };
 
+    // --- Formatear fecha ---
     let fechaFormateada = "";
     if (t.fecha) {
       const [año, mes, dia] = t.fecha.split("-");
       fechaFormateada = `${dia}/${mes}/${año}`;
+    }
+
+    // --- Mostrar 18:30 como 18:00 ---
+    let horaMostrada = t.hora;
+    if (t.hora === "18:30") {
+      horaMostrada = "18:00";
     }
 
     const datos = [
@@ -685,10 +744,9 @@ const generarPDF = () => {
       ["Mascota:", t.perro],
       ["Servicio:", t.servicio],
       ["Fecha:", fechaFormateada],
-      ["Hora:", t.hora],
+      ["Hora:", horaMostrada],
     ];
 
-    // Arrancamos los datos más abajo del título
     let y = posYLogo + tamañoLogo + 30;
     datos.forEach(([titulo, valor]) => {
       doc.setFont("helvetica", "bold");
@@ -708,6 +766,7 @@ const generarPDF = () => {
     doc.save(`Turno_${t.perro}_${t.fecha}.pdf`);
   };
 };
+
 
 
 
