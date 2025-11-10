@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="icon" type="image/x-icon" href="imagenes/icono.ico">
+  <meta charset="UTF-8">
+  <title>Turnos Veterinaria</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+/* === RESETEO GENERAL === */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #6a00b6, #9500ff, #e969cb);
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* === ENCABEZADO === */
+#header {
+  width: 100%;
+  text-align: center;
+  padding: 25px 0;
+  color: white;
+}
+
+#header img {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3));
+}
+
+/* === CONTENEDOR DE TABLA === */
+.contenedor-tabla {
+  background: white;
+  width: 100%;
+  max-width: 800px;
+  border-radius: 20px;
+  padding: 25px 20px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  animation: fadeIn 0.6s ease;
+  overflow-x: auto;
+}
+
+/* === TABLA DE TURNOS === */
+.tabla-turnos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(1rem, 4vw, 1.3rem);
+  text-align: center;
+}
+
+.tabla-turnos th,
+.tabla-turnos td {
+  border: 1px solid #ddd;
+  padding: 14px;
+  white-space: nowrap;
+}
+
+.tabla-turnos th {
+  background: linear-gradient(135deg, #6a00b6, #9500ff);
+  color: white;
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+}
+
+/* === CELULARES GRANDES === */
+@media (max-width: 1000px) {
+  html { font-size: 22px; }
+  body { padding: 10px; }
+
+  #header img {
+    max-width: 450px;
+    transform: scale(1.1);
+  }
+
+  .contenedor-tabla {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 24px;
+    padding: 35px 20px;
+  }
+
+  .tabla-turnos th,
+  .tabla-turnos td {
+    font-size: 1.4rem;
+    padding: 16px;
+  }
+}
+
+/* === ANIMACIONES === */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+  </style>
+</head>
+<body>
+
+  <div id="header">
+    <img src="imagenes/logo.png" alt="Logo Veterinaria">
+  </div>
+
+  <div class="contenedor-tabla">
+    <table class="tabla-turnos">
+      <thead>
+        <tr>
+          <th>Dueño</th>
+          <th>Perro</th>
+          <th>Teléfono</th>
+          <th>Hora</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody id="lista"></tbody>
+    </table>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBu8D-puwW2E5pkKsXOKYjsQr_UnqhGrqw",
+      authDomain: "veterinaria-28331.firebaseapp.com",
+      projectId: "veterinaria-28331",
+      storageBucket: "veterinaria-28331.firebasestorage.app",
+      messagingSenderId: "709696984659",
+      appId: "1:709696984659:web:08e9f2008b4195f0eb58a6",
+      databaseURL: "https://veterinaria-28331-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const lista = document.getElementById("lista");
+
+    // ✅ Función para mostrar fecha en formato argentino
+    function formatoArg(fecha) {
+      if (!fecha || !fecha.includes("-")) return fecha;
+      const [año, mes, dia] = fecha.split("-");
+      return `${dia}/${mes}/${año}`;
+    }
+
+    // ✅ Cargar turnos ordenados por fecha y hora
+    onValue(ref(db, "turnos"), snapshot => {
+      lista.innerHTML = "";
+      const data = [];
+
+      snapshot.forEach(child => {
+        const t = child.val();
+        data.push(t);
+      });
+
+      data.sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+
+      data.forEach(t => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${t.dueño}</td>
+          <td>${t.perro}</td>
+          <td>${t.telefono}</td>
+          <td>${t.hora}</td>
+          <td>${formatoArg(t.fecha)}</td>
+        `;
+        lista.appendChild(tr);
+      });
+    });
+  </script>
+</body>
+</html>
