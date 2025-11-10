@@ -431,13 +431,13 @@ button {
     </select>
   </div>
 
-  <div style="flex:1; min-width:120px;">
-    <label>Tamaño:</label>
-    <select id="tamano">
-      <option value="Pequeño">Pequeño</option>
-      <option value="Grande">Grande</option>
-    </select>
-  </div>
+ <div style="flex:1; min-width:120px;">
+  <label>Tamaño:</label>
+  <select id="tamano">
+    <option value="Pequeño" selected>Pequeño</option>
+    <option value="Grande">Grande</option>
+  </select>
+</div>
 </div>
 
 
@@ -646,8 +646,8 @@ if (fecha === fechaHoy) {
     }
 
     // 🔹 Si es pequeño, respetar límite de 3 por día
-    if (tamano === "Pequeño" && turnosDelDia.length >= 3) {
-      mostrarAlerta("⚠️ Ya hay 3 turnos ocupados ese día.");
+    if (tamano === "Pequeño" && turnosDelDia.length >= 4) {
+      mostrarAlerta("⚠️ Ya hay 4 turnos ocupados ese día.");
       return;
     }
 
@@ -660,6 +660,9 @@ if (fecha === fechaHoy) {
     // === GUARDAR TURNO (ahora con el campo tamaño incluido) ===
     datosTurnoActual = { dueño, perro, especie, telefono, servicio, tipo_pago, fecha, hora, tamano };
     push(ref(db, "turnos"), datosTurnoActual);
+    enviarCorreoTurno(fecha, hora, dueño, perro);
+
+    
 
     // Resetear formulario
     form.reset();
@@ -804,5 +807,36 @@ function mostrarAlerta(mensaje) {
     <button id="alertaBtn">Aceptar</button>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  // 🔹 Inicializá EmailJS con tu clave pública
+  emailjs.init("Y7jhaiN6WUD_MrwMv"); // ← reemplazá con tu clave
+</script>
+<script>
+function enviarCorreoTurno(fecha, hora, dueno, perro) {
+  // 🗓️ Parsear fecha al formato argentino (dd/mm/yyyy)
+  let fechaFormateada = fecha;
+  if (fecha && fecha.includes("-")) {
+    const partes = fecha.split("-");
+    fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+  }
+
+  // ✉️ Enviar correo al dueño fijo
+  emailjs.send("service_5hec3da", "template_vilz6ap", {
+    fecha: fechaFormateada,
+    hora: hora,
+    dueno: dueno,
+    perro: perro,
+    to_email: "Emilio.daniel.gallardo@gmail.com" // 👈 correo fijo del dueño
+  })
+  .then(() => {
+    console.log("📧 Correo enviado correctamente al dueño");
+  })
+  .catch(err => {
+    console.error("❌ Error al enviar correo:", err);
+    alert("Error al enviar correo: " + JSON.stringify(err));
+  });
+}
+</script>
 </body>
 </html>
